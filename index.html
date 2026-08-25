@@ -7,7 +7,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>HELIX DRIFT // Aerial archive of Hong Kong</title>
+        <title>MUHAMMAD SIRAJ // Aerial archive of Hong Kong</title>
         <meta name="description"
               content="HELIX DRIFT, a nine year aerial and rooftop photographic archive of Hong Kong, wound on a single spool.">
         <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,10 +15,12 @@
         <link href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@200;300;400;500&family=Newsreader:ital,opsz,wght@0,6..72,200;0,6..72,300;0,6..72,400;1,6..72,300&display=swap"
               rel="stylesheet">
         <link rel="stylesheet" href="templatemo-630-helix-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
     </head>
     <body>
         <header class="bar">
-            <a class="brand" href="#top"><i></i>Helix Drift</a>
+            <a class="brand" href="#top"><i></i>MUHAMMAD SIRAJ</a>
             <nav class="nav">
                 <a href="#top">Studies
                     <svg class="wv" viewBox="0 0 10 6" aria-hidden="true">
@@ -62,6 +64,12 @@
             </a>
         </nav>
         <main class="wrap" id="top">
+            <!-- Teachable Machine Camera View -->
+<div style="text-align: center; margin: 20px 0;">
+    <button type="button" onclick="init()" style="padding: 10px 20px; cursor: pointer;">Start Camera</button>
+    <div id="webcam-container" style="margin-top: 10px;"></div>
+    <div id="label-container" style="margin-top: 10px; font-weight: bold;"></div>
+</div>
             <div class="stage-shell">
                 <div class="stage"
                      id="stage"
@@ -344,5 +352,50 @@
             </div>
         </section>
         <script src="templatemo-630-helix-script.js"></script>
+
+
+<script>
+    const URL = "https://teachablemachine.withgoogle.com/models/5D4QJF198/";
+    let model, webcam, labelContainer, maxPredictions;
+
+    async function init() {
+        const modelURL = URL + "model.json";
+        const metadataURL = URL + "metadata.json";
+
+        model = await tmImage.load(modelURL, metadataURL);
+        maxPredictions = model.getTotalClasses();
+
+        webcam = new tmImage.Webcam(200, 200, true); 
+        await webcam.setup(); 
+        await webcam.play();
+        window.requestAnimationFrame(loop);
+
+        document.getElementById("webcam-container").appendChild(webcam.canvas);
+        labelContainer = document.getElementById("label-container");
+        for (let i = 0; i < maxPredictions; i++) {
+            labelContainer.appendChild(document.createElement("div"));
+        }
+    }
+
+    async function loop() {
+        webcam.update();
+        await predict();
+        window.requestAnimationFrame(loop);
+    }
+
+    async function predict() {
+        const prediction = await model.predict(webcam.canvas);
+        for (let i = 0; i < maxPredictions; i++) {
+            const classPrediction =
+                prediction[i].className + ": " + (prediction[i].probability * 100).toFixed(0) + "%";
+            labelContainer.childNodes[i].innerHTML = classPrediction;
+        }
+    }
+</script>
+
+
+
+
+
     </body>
 </html>
