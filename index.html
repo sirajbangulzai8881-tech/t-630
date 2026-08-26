@@ -5,6 +5,17 @@
 -->
 <html lang="en">
     <head>
+
+<!-- TensorFlow Core -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+
+<!-- 1. Image Library -->
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+
+<!-- 2. Pose Library -->
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/pose@latest/dist/teachablemachine-pose.min.js"></script>
+
+
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>MUHAMMAD SIRAJ // Aerial archive of Hong Kong</title>
@@ -66,6 +77,22 @@
             </a>
         </nav>
         <main class="wrap" id="top">
+
+
+            <div style="text-align: center; padding: 20px; background: #ffffff; border-bottom: 1px solid #eee; position: relative; z-index: 99999; margin-top: 80px;">
+    <h3>Teachable Machine AI Controls</h3>
+    <div style="margin-bottom: 15px;">
+        <button onclick="initImage()" style="padding: 10px 15px; background: #4A6E96; color: white; border: none; border-radius: 4px; cursor: pointer; margin: 5px;">📷 Start Image AI</button>
+       
+        <button onclick="initPose()" style="padding: 10px 15px; background: #C62828; color: white; border: none; border-radius: 4px; cursor: pointer; margin: 5px;">🧍 Start Pose AI</button>
+    </div>
+    
+    <!-- Video / Canvas display -->
+    <div id="ai-container" style="display: flex; justify-content: center; margin-top: 10px;"></div>
+    <!-- Predictions Text -->
+    <div id="label-container" style="margin-top: 15px; font-size: 18px; font-weight: bold; color: #333;"></div>
+</div>
+
 
             <!-- Teachable Machine Camera Box -->
             <!-- Is code ko apni index.html mein replacement/update kar lein -->
@@ -427,5 +454,85 @@
         }, 2000); // 2 second pause
     }
 </script>
+
+
+<script>
+    // Apne Image aur Pose model links yahan paste karein
+    const URL_IMAGE = "https://teachablemachine.withgoogle.com/models/YOUR_IMAGE_ID/";
+    const URL_POSE  = "https://teachablemachine.withgoogle.com/models/h9me8X1bG/"; // Aapka pose link
+
+    let activeWebcam = null;
+
+    // Output container aur camera stop karne ke liye
+    function clearContainers() {
+        if (activeWebcam) { 
+            activeWebcam.stop(); 
+            activeWebcam = null; 
+        }
+        document.getElementById("ai-container").innerHTML = "";
+        document.getElementById("label-container").innerHTML = "";
+    }
+
+    // --- 1. IMAGE MODEL ---
+    async function initImage() {
+        clearContainers();
+        const model = await tmImage.load(URL_IMAGE + "model.json", URL_IMAGE + "metadata.json");
+        const maxPredictions = model.getTotalClasses();
+
+        activeWebcam = new tmImage.Webcam(200, 200, true);
+        await activeWebcam.setup();
+        await activeWebcam.play();
+
+        document.getElementById("ai-container").appendChild(activeWebcam.canvas);
+        const labelContainer = document.getElementById("label-container");
+        for (let i = 0; i < maxPredictions; i++) {
+            labelContainer.appendChild(document.createElement("div"));
+        }
+
+        async function loopImage() {
+            if (!activeWebcam) return;
+            activeWebcam.update();
+            const prediction = await model.predict(activeWebcam.canvas);
+            for (let i = 0; i < maxPredictions; i++) {
+                labelContainer.childNodes[i].innerHTML = prediction[i].className + ": " + (prediction[i].probability * 100).toFixed(0) + "%";
+            }
+            window.requestAnimationFrame(loopImage);
+        }
+        loopImage();
+    }
+
+    // --- 2. POSE MODEL ---
+    async function initPose() {
+        clearContainers();
+        const model = await tmPose.load(URL_POSE + "model.json", URL_POSE + "metadata.json");
+        const maxPredictions = model.getTotalClasses();
+
+        activeWebcam = new tmPose.Webcam(200, 200, true);
+        await activeWebcam.setup();
+        await activeWebcam.play();
+
+        document.getElementById("ai-container").appendChild(activeWebcam.canvas);
+        const labelContainer = document.getElementById("label-container");
+        for (let i = 0; i < maxPredictions; i++) {
+            labelContainer.appendChild(document.createElement("div"));
+        }
+
+        async function loopPose() {
+            if (!activeWebcam) return;
+            activeWebcam.update();
+            const { pose, posenetOutput } = await model.estimatePose(activeWebcam.canvas);
+            const prediction = await model.predict(posenetOutput);
+
+            for (let i = 0; i < maxPredictions; i++) {
+                labelContainer.childNodes[i].innerHTML = prediction[i].className + ": " + (prediction[i].probability * 100).toFixed(0) + "%";
+            }
+            window.requestAnimationFrame(loopPose);
+        }
+        loopPose();
+    }
+</script>
+
+
+
     </body>
 </html>
